@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # ------------------------------------------------
-# Stereo Debug Web Server for Depth & Detection
+# Stereo Debug Interface for Depth & Detection
 # ------------------------------------------------
 
 import cv2
 import numpy as np
 import serial
 import time
-import threading
-from flask import Flask, Response
 
 # ------------------------------------------------
-# 1) Flask App Setup
+# 1) Interface Setup
 # ------------------------------------------------
-app = Flask(__name__)
 latest_frames = {'left': None, 'right': None, 'disp': None, 'vis': None}
 
 # ------------------------------------------------
@@ -157,40 +154,28 @@ def run_cycle():
     time.sleep(0.1)
 
 # ------------------------------------------------
-# 8) Web routes & server
+# 8) Display helper
 # ------------------------------------------------
-
-def serve_frame(tag):
-    frame = latest_frames[tag]
-    if frame is None:
-        return ("", 404)
-    _, buf = cv2.imencode('.jpg', frame)
-    return Response(buf.tobytes(), mimetype='image/jpeg')
-
-@app.route('/left')
-def left_feed(): return serve_frame('left')
-@app.route('/right')
-def right_feed(): return serve_frame('right')
-@app.route('/disp')
-def disp_feed(): return serve_frame('disp')
-@app.route('/vis')
-def vis_feed(): return serve_frame('vis')
-@app.route('/')
-def index():
-    return "<html><body><h1>Stereo Debug Streams</h1></body></html>"
+def show_frames():
+    if latest_frames['left'] is not None:
+        cv2.imshow('Left Camera', latest_frames['left'])
+    if latest_frames['right'] is not None:
+        cv2.imshow('Right Camera', latest_frames['right'])
+    if latest_frames['vis'] is not None:
+        cv2.imshow('Detection', latest_frames['vis'])
+    cv2.waitKey(1)
 
 # ------------------------------------------------
-# 9) Start server & interactive loop
+# 9) Interactive loop
 # ------------------------------------------------
-def start_server():
-    app.run(host='192.168.1.42', port=5000)
-
 if __name__ == '__main__':
-    threading.Thread(target=start_server, daemon=True).start()
-    print("Server running at http://192.168.1.42:5000")
     print("Press 'n' + Enter for next detection, 'q' + Enter to quit.")
     while True:
         cmd = input("Enter command (n/q): ").strip().lower()
-        if cmd == 'n': run_cycle()
-        elif cmd == 'q': break
+        if cmd == 'n':
+            run_cycle()
+            show_frames()
+        elif cmd == 'q':
+            break
     arduino.close()
+    cv2.destroyAllWindows()
