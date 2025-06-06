@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # ------------------------------------------------
-# Stereo Debug Web Server for Depth & Detection
+# Stereo Debug Interface for Depth & Detection
 # ------------------------------------------------
 
 import cv2
 import numpy as np
 import serial
 import time
-import threading
-from flask import Flask, Response
 
 # ------------------------------------------------
-# 1) Flask App Setup
+# 1) Frame Buffers
 # ------------------------------------------------
-app = Flask(__name__)
 latest_frames = {'left': None, 'right': None, 'disp': None, 'vis': None}
 
 # ------------------------------------------------
@@ -153,72 +150,33 @@ def run_cycle():
     send_command(f"MOVE_Z {-sz:+d}")
     send_command(f"MOVE {-sx:+d} {-sy:+d}")
 
-
     time.sleep(0.1)
 
 # ------------------------------------------------
-# 8) Web routes & server
+# 8) Display utility
 # ------------------------------------------------
 
-def serve_frame(tag):
-    frame = latest_frames[tag]
-    if frame is None:
-        return ("", 404)
-    _, buf = cv2.imencode('.jpg', frame)
-    return Response(buf.tobytes(), mimetype='image/jpeg')
+def display_frames():
+    if latest_frames['left'] is not None:
+        cv2.imshow('Left Camera', latest_frames['left'])
+    if latest_frames['right'] is not None:
+        cv2.imshow('Right Camera', latest_frames['right'])
+    if latest_frames['vis'] is not None:
+        cv2.imshow('Detection', latest_frames['vis'])
+    cv2.waitKey(1)
 
-@app.route('/left')
-def left_feed(): return serve_frame('left')
-@app.route('/right')
-def right_feed(): return serve_frame('right')
-@app.route('/disp')
-def disp_feed(): return serve_frame('disp')
-@app.route('/vis')
-def vis_feed(): return serve_frame('vis')
-@app.route('/')
-def index():
-    return """
-    <html>
-      <head>
-        <title>Stereo Debug Streams</title>
-        <style>
-          body { font-family: Arial, sans-serif; }
-          .row { display: flex; gap: 20px; }
-          .feed { text-align: center; }
-        </style>
-      </head>
-      <body>
-        <h1>Stereo Debug Streams</h1>
-        <div class='row'>
-          <div class='feed'>
-            <h2>Left Camera</h2>
-            <img src='/left' width='320' />
-          </div>
-          <div class='feed'>
-            <h2>Right Camera</h2>
-            <img src='/right' width='320' />
-          </div>
-          <div class='feed'>
-            <h2>Detection</h2>
-            <img src='/vis' width='320' />
-          </div>
-        </div>
-      </body>
-    </html>
-    """
 
 # ------------------------------------------------
-# 9) Start server & interactive loop
+# 9) Interactive loop
 # ------------------------------------------------
-def start_server():
-    app.run(host='192.168.1.42', port=5000)
-
 if __name__ == '__main__':
-    threading.Thread(target=start_server, daemon=True).start()
-    print("Server running at http://192.168.1.42:5000")
-    print("Press 'n' + Enter for next detection, 'q' + Enter to quit.")
+    print("Press 'n' for next detection, 'q' to quit.")
     while True:
-        cmd = input("Enter command (n/q): ").strip().lower()
-        if cmd == 'n': run_cycle()
-        elif cmd == 'q': break
+        display_frames()
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('n'):
+            run_cycle()
+        elif key == ord('q'):
+            break
+    cv2.destroyAllWindows()
     arduino.close()
