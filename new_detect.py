@@ -10,6 +10,17 @@ import serial
 import time
 
 # ------------------------------------------------
+# Logging utility to capture messages for on-screen display
+# ------------------------------------------------
+log_messages = []
+
+def log(msg):
+    print(msg)
+    log_messages.append(str(msg))
+    if len(log_messages) > 15:
+        del log_messages[0]
+
+# ------------------------------------------------
 # 1) Frame Buffers
 # ------------------------------------------------
 latest_frames = {'left': None, 'right': None, 'disp': None, 'vis': None}
@@ -22,7 +33,7 @@ BAUDRATE = 9600
 arduino = serial.Serial(ARDUINO_PORT, BAUDRATE, timeout=1)
 
 def send_command(cmd):
-    print(f">>> Sending: {cmd}")
+    log(f">>> Sending: {cmd}")
     arduino.write((cmd + "\n").encode())
     arduino.flush()
 
@@ -99,7 +110,7 @@ def run_cycle():
     disp = d16.astype(np.float32) / 16.0
     disp[disp <= 0] = np.nan
     pts3d = cv2.reprojectImageTo3D(disp, Q)
-    print(f"Disp stats: min={np.nanmin(disp):.2f}, max={np.nanmax(disp):.2f}, mean={np.nanmean(disp):.2f}")
+    log(f"Disp stats: min={np.nanmin(disp):.2f}, max={np.nanmax(disp):.2f}, mean={np.nanmean(disp):.2f}")
     latest_frames['left'], latest_frames['right'] = left, right
     dv = disp.copy(); dv[np.isnan(dv)] = np.nanmin(dv)
     dv = ((dv - dv.min())/(dv.max()-dv.min())*255).astype(np.uint8)
@@ -110,40 +121,40 @@ def run_cycle():
         cv2.inRange(hsv, LOWER_RED2, UPPER_RED2)
     ), cv2.MORPH_OPEN, KERNEL)
     cnts = cv2.findContours(mask_t, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
-    print(f"Red contours found: {len(cnts)}")
+    log(f"Red contours found: {len(cnts)}")
     P_t = None
     if cnts:
         c = max(cnts, key=cv2.contourArea)
         x,y,ww,hh = cv2.boundingRect(c)
         cv2.rectangle(vis, (x,y), (x+ww,y+hh), (0,0,255), 2)
         P_t = pts3d[y+hh//2, x+ww//2]
-        print(f"P_t coords: {P_t}")
+        log(f"P_t coords: {P_t}")
     mask_b = cv2.morphologyEx(cv2.inRange(hsv, LOWER_BLUE, UPPER_BLUE), cv2.MORPH_OPEN, KERNEL)
     cnts_b = cv2.findContours(mask_b, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
-    print(f"Blue contours found: {len(cnts_b)}")
+    log(f"Blue contours found: {len(cnts_b)}")
     P_b = None
     if cnts_b:
         cb = max(cnts_b, key=cv2.contourArea)
         bx,by,bw,bbh = cv2.boundingRect(cb)
         cv2.rectangle(vis, (bx,by), (bx+bw,by+bbh), (255,0,0), 2)
         P_b = pts3d[by+bbh//2, bx+bw//2]
-        print(f"P_b coords: {P_b}")
+        log(f"P_b coords: {P_b}")
     latest_frames['vis'] = vis
     if P_t is None or P_b is None:
-        print("Detection missing object(s). Next cycle.")
+        log("Detection missing object(s). Next cycle.")
         return
     if not np.all(np.isfinite(P_t)) or not np.all(np.isfinite(P_b)):
-        print(f"Non-finite values: P_t={P_t}, P_b={P_b}")
+        log(f"Non-finite values: P_t={P_t}, P_b={P_b}")
         return
     delta_vec = P_t - P_b
-    print(f"Delta_vec before tilt: {delta_vec}")
+    log(f"Delta_vec before tilt: {delta_vec}")
     marker_vec = R_tilt.dot(delta_vec)
     mm = marker_vec * 1000.0
-    print(f"Move (mm) in marker frame: {mm}")
+    log(f"Move (mm) in marker frame: {mm}")
     sx = int(mm[0] * STEPS_PER_MM_X)
     sy = int(mm[1] * STEPS_PER_MM_YZ)
     sz = int(mm[2] * STEPS_PER_MM_YZ)
-    print(f"Steps -> X:{sx}, Y:{sy}, Z:{sz}")
+    log(f"Steps -> X:{sx}, Y:{sy}, Z:{sz}")
     send_command(f"MOVE {sx:+d} {sy:+d}")
     send_command(f"MOVE_Z {sz:+d}")
     time.sleep(5)
@@ -156,27 +167,44 @@ def run_cycle():
 # 8) Display utility
 # ------------------------------------------------
 
-def display_frames():
+def compose_canvas():
+    canvas = np.zeros((h*2, w*2, 3), dtype=np.uint8)
     if latest_frames['left'] is not None:
-        cv2.imshow('Left Camera', latest_frames['left'])
+        canvas[0:h, 0:w] = latest_frames['left']
     if latest_frames['right'] is not None:
-        cv2.imshow('Right Camera', latest_frames['right'])
+        canvas[0:h, w:w*2] = latest_frames['right']
     if latest_frames['vis'] is not None:
-        cv2.imshow('Detection', latest_frames['vis'])
-    cv2.waitKey(1)
+        canvas[h:h*2, 0:w] = latest_frames['vis']
+    if latest_frames['disp'] is not None:
+        canvas[h:h*2, w:w*2] = latest_frames['disp']
+    return canvas
+
+def draw_logs(img):
+    y = 20
+    for msg in log_messages[-10:]:
+        cv2.putText(img, msg, (10, y), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5, (255, 255, 255), 1, cv2.LINE_AA)
+        y += 20
+
+def display_interface():
+    canvas = compose_canvas()
+    draw_logs(canvas)
+    cv2.imshow('Interface', canvas)
 
 
 # ------------------------------------------------
 # 9) Interactive loop
 # ------------------------------------------------
 if __name__ == '__main__':
-    print("Press 'n' for next detection, 'q' to quit.")
+    log("Press 'n' for next detection, 'q' to quit.")
+    cv2.namedWindow('Interface', cv2.WINDOW_NORMAL)
+    display_interface()
     while True:
-        display_frames()
         key = cv2.waitKey(1) & 0xFF
         if key == ord('n'):
             run_cycle()
         elif key == ord('q'):
             break
+        display_interface()
     cv2.destroyAllWindows()
     arduino.close()
