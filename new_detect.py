@@ -48,9 +48,9 @@ LOWER_BLUE = np.array([100, 150, 50]); UPPER_BLUE = np.array([140, 255, 255])
 KERNEL = np.ones((5,5), np.uint8)
 
 # Tilt angles around axes (degrees)
-TILT_X_DEG = -75.0   # upward tilt around X-axis
-TILT_Y_DEG = 0.0    # placeholder for Y-axis tilt
-TILT_Z_DEG = 0.0    # placeholder for Z-axis tilt
+TILT_X_DEG = -68.0   # upward tilt around X-axis
+TILT_Y_DEG = 4.0    # placeholder for Y-axis tilt
+TILT_Z_DEG = 177.0    # placeholder for Z-axis tilt
 # Convert to radians
 tx = np.deg2rad(TILT_X_DEG)
 ty = np.deg2rad(TILT_Y_DEG)
@@ -81,7 +81,7 @@ R1, R2, P1, P2, Q, _, _ = cv2.stereoRectify(K_L, D_L, K_R, D_R, (w, h), R_lr, T_
                                             flags=cv2.CALIB_ZERO_DISPARITY, alpha=0)
 mapLx, mapLy = cv2.initUndistortRectifyMap(K_L, D_L, R1, P1, (w, h), cv2.CV_32FC1)
 mapRx, mapRy = cv2.initUndistortRectifyMap(K_R, D_R, R2, P2, (w, h), cv2.CV_32FC1)
-stereo = cv2.StereoSGBM_create(minDisparity=0, numDisparities=96, blockSize=5,
+stereo = cv2.StereoSGBM_create(minDisparity=10, numDisparities=128, blockSize=7,
                                 P1=8*3*5*5, P2=32*3*5*5, disp12MaxDiff=1,
                                 preFilterCap=31, uniquenessRatio=15,
                                 speckleWindowSize=100, speckleRange=2,
