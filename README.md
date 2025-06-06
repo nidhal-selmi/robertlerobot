@@ -7,8 +7,9 @@ The Arduino controls the hardware components such as servos and sensors that
 physically pick the strawberries. The Raspberry Pi runs Python scripts to detect
 ripe strawberries and coordinate the harvesting sequence.
 
-`detection.py` is intended for the Raspberry Pi and will handle image capture
-and detection logic.
+`new_detect.py` runs on the Raspberry Pi and shows a local interface using
+OpenCV. Press **n** to capture a new stereo pair and run detection. The left
+camera, right camera and detection overlay are displayed in separate windows.
 
 Additional Arduino sketches would control the mechanical actuators that move the
 robotic arm and gripper.
