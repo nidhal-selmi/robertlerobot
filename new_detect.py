@@ -177,7 +177,35 @@ def disp_feed(): return serve_frame('disp')
 def vis_feed(): return serve_frame('vis')
 @app.route('/')
 def index():
-    return "<html><body><h1>Stereo Debug Streams</h1></body></html>"
+    return """
+    <html>
+      <head>
+        <title>Stereo Debug Streams</title>
+        <style>
+          body { font-family: Arial, sans-serif; }
+          .row { display: flex; gap: 20px; }
+          .feed { text-align: center; }
+        </style>
+      </head>
+      <body>
+        <h1>Stereo Debug Streams</h1>
+        <div class='row'>
+          <div class='feed'>
+            <h2>Left Camera</h2>
+            <img src='/left' width='320' />
+          </div>
+          <div class='feed'>
+            <h2>Right Camera</h2>
+            <img src='/right' width='320' />
+          </div>
+          <div class='feed'>
+            <h2>Detection</h2>
+            <img src='/vis' width='320' />
+          </div>
+        </div>
+      </body>
+    </html>
+    """
 
 # ------------------------------------------------
 # 9) Start server & interactive loop
