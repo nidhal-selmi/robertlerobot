@@ -101,51 +101,96 @@ def capture_frame(idx):
 
 # ------------------------------------------------
 # 7) Main cycle with verbose debug
-def run_cycle():
-    left = cv2.remap(capture_frame(2), mapLx, mapLy, cv2.INTER_CUBIC)
-    right = cv2.remap(capture_frame(0), mapRx, mapRy, cv2.INTER_CUBIC)
-    gL, gR = cv2.cvtColor(left, cv2.COLOR_BGR2GRAY), cv2.cvtColor(right, cv2.COLOR_BGR2GRAY)
-    d16 = stereo.compute(gL, gR)
-    cv2.filterSpeckles(d16, 0, 400, 32)
-    disp = d16.astype(np.float32) / 16.0
-    disp[disp <= 0] = np.nan
-    pts3d = cv2.reprojectImageTo3D(disp, Q)
-    log(f"Disp stats: min={np.nanmin(disp):.2f}, max={np.nanmax(disp):.2f}, mean={np.nanmean(disp):.2f}")
-    latest_frames['left'], latest_frames['right'] = left, right
-    dv = disp.copy(); dv[np.isnan(dv)] = np.nanmin(dv)
-    dv = ((dv - dv.min())/(dv.max()-dv.min())*255).astype(np.uint8)
-    latest_frames['disp'] = cv2.applyColorMap(dv, cv2.COLORMAP_JET)
-    vis = left.copy(); hsv = cv2.cvtColor(left, cv2.COLOR_BGR2HSV)
-    mask_t = cv2.morphologyEx(cv2.bitwise_or(
-        cv2.inRange(hsv, LOWER_RED1, UPPER_RED1),
-        cv2.inRange(hsv, LOWER_RED2, UPPER_RED2)
-    ), cv2.MORPH_OPEN, KERNEL)
-    cnts = cv2.findContours(mask_t, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
-    log(f"Red contours found: {len(cnts)}")
-    P_t = None
-    if cnts:
-        c = max(cnts, key=cv2.contourArea)
-        x,y,ww,hh = cv2.boundingRect(c)
-        cv2.rectangle(vis, (x,y), (x+ww,y+hh), (0,0,255), 2)
-        P_t = pts3d[y+hh//2, x+ww//2]
-        log(f"P_t coords: {P_t}")
-    mask_b = cv2.morphologyEx(cv2.inRange(hsv, LOWER_BLUE, UPPER_BLUE), cv2.MORPH_OPEN, KERNEL)
-    cnts_b = cv2.findContours(mask_b, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
-    log(f"Blue contours found: {len(cnts_b)}")
-    P_b = None
-    if cnts_b:
-        cb = max(cnts_b, key=cv2.contourArea)
-        bx,by,bw,bbh = cv2.boundingRect(cb)
-        cv2.rectangle(vis, (bx,by), (bx+bw,by+bbh), (255,0,0), 2)
-        P_b = pts3d[by+bbh//2, bx+bw//2]
-        log(f"P_b coords: {P_b}")
-    latest_frames['vis'] = vis
-    if P_t is None or P_b is None:
+NUM_FRAMES = 5
+
+def _avg_bbox_point(pts3d, bbox):
+    x, y, w_, h_ = bbox
+    region = pts3d[y:y+h_, x:x+w_]
+    valid = np.all(np.isfinite(region), axis=2)
+    if np.any(valid):
+        return region[valid].mean(axis=0)
+    return None
+
+
+def run_cycle(num_frames=NUM_FRAMES):
+    P_t_list = []
+    P_b_list = []
+    last_vis = None
+    for _ in range(num_frames):
+        left = cv2.remap(capture_frame(2), mapLx, mapLy, cv2.INTER_CUBIC)
+        right = cv2.remap(capture_frame(0), mapRx, mapRy, cv2.INTER_CUBIC)
+        gL = cv2.cvtColor(left, cv2.COLOR_BGR2GRAY)
+        gR = cv2.cvtColor(right, cv2.COLOR_BGR2GRAY)
+        d16 = stereo.compute(gL, gR)
+        cv2.filterSpeckles(d16, 0, 400, 32)
+        disp = d16.astype(np.float32) / 16.0
+        disp[disp <= 0] = np.nan
+        pts3d = cv2.reprojectImageTo3D(disp, Q)
+        log(
+            f"Disp stats: min={np.nanmin(disp):.2f}, max={np.nanmax(disp):.2f}, mean={np.nanmean(disp):.2f}"
+        )
+
+        latest_frames['left'], latest_frames['right'] = left, right
+        dv = disp.copy()
+        dv[np.isnan(dv)] = np.nanmin(dv)
+        dv = ((dv - dv.min()) / (dv.max() - dv.min()) * 255).astype(np.uint8)
+        latest_frames['disp'] = cv2.applyColorMap(dv, cv2.COLORMAP_JET)
+
+        vis = left.copy()
+        hsv = cv2.cvtColor(left, cv2.COLOR_BGR2HSV)
+
+        mask_t = cv2.morphologyEx(
+            cv2.bitwise_or(
+                cv2.inRange(hsv, LOWER_RED1, UPPER_RED1),
+                cv2.inRange(hsv, LOWER_RED2, UPPER_RED2),
+            ),
+            cv2.MORPH_OPEN,
+            KERNEL,
+        )
+        cnts = cv2.findContours(mask_t, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
+        log(f"Red contours found: {len(cnts)}")
+        bbox_t = None
+        if cnts:
+            c = max(cnts, key=cv2.contourArea)
+            bbox_t = cv2.boundingRect(c)
+            x, y, ww, hh = bbox_t
+            cv2.rectangle(vis, (x, y), (x + ww, y + hh), (0, 0, 255), 2)
+            pt = _avg_bbox_point(pts3d, bbox_t)
+            if pt is not None:
+                P_t_list.append(pt)
+                log(f"P_t coords: {pt}")
+
+        mask_b = cv2.morphologyEx(
+            cv2.inRange(hsv, LOWER_BLUE, UPPER_BLUE), cv2.MORPH_OPEN, KERNEL
+        )
+        cnts_b = cv2.findContours(mask_b, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
+        log(f"Blue contours found: {len(cnts_b)}")
+        bbox_b = None
+        if cnts_b:
+            cb = max(cnts_b, key=cv2.contourArea)
+            bbox_b = cv2.boundingRect(cb)
+            bx, by, bw, bbh = bbox_b
+            cv2.rectangle(vis, (bx, by), (bx + bw, by + bbh), (255, 0, 0), 2)
+            pb = _avg_bbox_point(pts3d, bbox_b)
+            if pb is not None:
+                P_b_list.append(pb)
+                log(f"P_b coords: {pb}")
+
+        last_vis = vis
+
+    latest_frames['vis'] = last_vis
+
+    if len(P_t_list) == 0 or len(P_b_list) == 0:
         log("Detection missing object(s). Next cycle.")
         return
+
+    P_t = np.mean(P_t_list, axis=0)
+    P_b = np.mean(P_b_list, axis=0)
+
     if not np.all(np.isfinite(P_t)) or not np.all(np.isfinite(P_b)):
         log(f"Non-finite values: P_t={P_t}, P_b={P_b}")
         return
+
     delta_vec = P_t - P_b
     log(f"Delta_vec before tilt: {delta_vec}")
     marker_vec = R_tilt.dot(delta_vec)
