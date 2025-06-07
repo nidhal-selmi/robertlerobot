@@ -48,8 +48,8 @@ LOWER_BLUE = np.array([100, 150, 50]); UPPER_BLUE = np.array([140, 255, 255])
 KERNEL = np.ones((5,5), np.uint8)
 
 # Tilt angles around axes (degrees)
-TILT_X_DEG = 9  # upward tilt around X-axis
-TILT_Y_DEG = -21    # placeholder for Y-axis tilt
+TILT_X_DEG = 0  # upward tilt around X-axis
+TILT_Y_DEG = -27    # placeholder for Y-axis tilt
 TILT_Z_DEG = 0    # placeholder for Z-axis tilt
 # Convert to radians
 tx = np.deg2rad(TILT_X_DEG)
