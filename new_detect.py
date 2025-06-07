@@ -116,11 +116,16 @@ def _avg_bbox_point(pts3d, bbox):
     return None
 
 
+def _is_valid_pt(pt: np.ndarray) -> bool:
+    """Return True if point is finite and within 1 meter of the camera."""
+    return pt is not None and np.all(np.isfinite(pt)) and np.linalg.norm(pt) < 1.0
+
+
 def run_cycle(num_frames=NUM_FRAMES):
     P_t_list = []
     P_b_list = []
     last_vis = None
-    for _ in range(num_frames):
+    while len(P_t_list) < num_frames:
         left = cv2.remap(capture_frame(0), mapLx, mapLy, cv2.INTER_CUBIC)
         right = cv2.remap(capture_frame(2), mapRx, mapRy, cv2.INTER_CUBIC)
         gL = cv2.cvtColor(left, cv2.COLOR_BGR2GRAY)
@@ -153,6 +158,8 @@ def run_cycle(num_frames=NUM_FRAMES):
         )
         cnts = cv2.findContours(mask_t, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
         log(f"Red contours found: {len(cnts)}")
+        pt = None
+        pb = None
         bbox_t = None
         if cnts:
             c = max(cnts, key=cv2.contourArea)
@@ -160,9 +167,6 @@ def run_cycle(num_frames=NUM_FRAMES):
             x, y, ww, hh = bbox_t
             cv2.rectangle(vis, (x, y), (x + ww, y + hh), (0, 0, 255), 2)
             pt = _avg_bbox_point(pts3d, bbox_t)
-            if pt is not None:
-                P_t_list.append(pt)
-                log(f"P_t coords: {pt}")
 
         mask_b = cv2.morphologyEx(
             cv2.inRange(hsv, LOWER_BLUE, UPPER_BLUE), cv2.MORPH_OPEN, KERNEL
@@ -176,11 +180,18 @@ def run_cycle(num_frames=NUM_FRAMES):
             bx, by, bw, bbh = bbox_b
             cv2.rectangle(vis, (bx, by), (bx + bw, by + bbh), (255, 0, 0), 2)
             pb = _avg_bbox_point(pts3d, bbox_b)
-            if pb is not None:
-                P_b_list.append(pb)
-                log(f"P_b coords: {pb}")
 
         last_vis = vis
+        if _is_valid_pt(pt) and _is_valid_pt(pb):
+            P_t_list.append(pt)
+            P_b_list.append(pb)
+            log(f"P_t coords: {pt}")
+            log(f"P_b coords: {pb}")
+        else:
+            log("Invalid or distant coordinate detected. Restarting cycle.")
+            P_t_list.clear()
+            P_b_list.clear()
+            continue
 
     latest_frames['vis'] = last_vis
 
