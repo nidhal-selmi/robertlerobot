@@ -85,7 +85,7 @@ R1, R2, P1, P2, Q, _, _ = cv2.stereoRectify(K_L, D_L, K_R, D_R, (w, h), R_lr, T_
                                             flags=cv2.CALIB_ZERO_DISPARITY, alpha=0)
 mapLx, mapLy = cv2.initUndistortRectifyMap(K_L, D_L, R1, P1, (w, h), cv2.CV_32FC1)
 mapRx, mapRy = cv2.initUndistortRectifyMap(K_R, D_R, R2, P2, (w, h), cv2.CV_32FC1)
-stereo = cv2.StereoSGBM_create(minDisparity=48, numDisparities=64, blockSize=11,
+stereo = cv2.StereoSGBM_create(minDisparity=0, numDisparities=128, blockSize=11,
                                 P1=8*3*11**2, P2=32*3*11**2, disp12MaxDiff=1,
                                 uniquenessRatio=10,
                                 speckleWindowSize=150, speckleRange=2,
@@ -121,8 +121,8 @@ def run_cycle(num_frames=NUM_FRAMES):
     P_b_list = []
     last_vis = None
     for _ in range(num_frames):
-        left = cv2.remap(capture_frame(2), mapLx, mapLy, cv2.INTER_CUBIC)
-        right = cv2.remap(capture_frame(0), mapRx, mapRy, cv2.INTER_CUBIC)
+        left = cv2.remap(capture_frame(0), mapLx, mapLy, cv2.INTER_CUBIC)
+        right = cv2.remap(capture_frame(2), mapRx, mapRy, cv2.INTER_CUBIC)
         gL = cv2.cvtColor(left, cv2.COLOR_BGR2GRAY)
         gR = cv2.cvtColor(right, cv2.COLOR_BGR2GRAY)
         d16 = stereo.compute(gL, gR)
