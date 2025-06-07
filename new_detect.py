@@ -44,13 +44,8 @@ STEPS_PER_MM_X = 115.38
 STEPS_PER_MM_YZ = 18.75
 LOWER_RED1 = np.array([0, 120, 70]); UPPER_RED1 = np.array([10, 255, 255])
 LOWER_RED2 = np.array([170, 120, 70]); UPPER_RED2 = np.array([180, 255, 255])
+LOWER_BLUE = np.array([100, 150, 50]); UPPER_BLUE = np.array([140, 255, 255])
 KERNEL = np.ones((5,5), np.uint8)
-
-# AprilTag detection (used instead of the blue marker)
-TAG_SIZE_M = 0.015  # 15 mm tag
-APRIL_DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11)
-APRIL_PARAMS = cv2.aruco.DetectorParameters()
-APRIL_DETECTOR = cv2.aruco.ArucoDetector(APRIL_DICT, APRIL_PARAMS)
 
 # Tilt angles around axes (degrees)
 TILT_X_DEG = -68.0   # upward tilt around X-axis
@@ -165,18 +160,21 @@ def run_cycle(num_frames=NUM_FRAMES):
                 P_t_list.append(pt)
                 log(f"P_t coords: {pt}")
 
-        gray_tag = cv2.cvtColor(left, cv2.COLOR_BGR2GRAY)
-        corners, ids, _ = APRIL_DETECTOR.detectMarkers(gray_tag)
-        log(f"AprilTags detected: {0 if ids is None else len(ids)}")
+        mask_b = cv2.morphologyEx(
+            cv2.inRange(hsv, LOWER_BLUE, UPPER_BLUE), cv2.MORPH_OPEN, KERNEL
+        )
+        cnts_b = cv2.findContours(mask_b, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
+        log(f"Blue contours found: {len(cnts_b)}")
         bbox_b = None
-        if ids is not None:
-            c_tag = corners[0].reshape(4, 2)
-            bbox_b = cv2.boundingRect(c_tag)
-            cv2.polylines(vis, [c_tag.astype(int)], True, (0, 255, 0), 2)
+        if cnts_b:
+            cb = max(cnts_b, key=cv2.contourArea)
+            bbox_b = cv2.boundingRect(cb)
+            bx, by, bw, bbh = bbox_b
+            cv2.rectangle(vis, (bx, by), (bx + bw, by + bbh), (255, 0, 0), 2)
             pb = _avg_bbox_point(pts3d, bbox_b)
             if pb is not None:
                 P_b_list.append(pb)
-                log(f"Tag coords: {pb}")
+                log(f"P_b coords: {pb}")
 
         last_vis = vis
 
