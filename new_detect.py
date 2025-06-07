@@ -188,9 +188,7 @@ def run_cycle(num_frames=NUM_FRAMES):
             log(f"P_t coords: {pt}")
             log(f"P_b coords: {pb}")
         else:
-            log("Invalid or distant coordinate detected. Restarting cycle.")
-            P_t_list.clear()
-            P_b_list.clear()
+            log("Invalid or distant coordinate detected. Skipping frame.")
             continue
 
     latest_frames['vis'] = last_vis
