@@ -85,10 +85,10 @@ R1, R2, P1, P2, Q, _, _ = cv2.stereoRectify(K_L, D_L, K_R, D_R, (w, h), R_lr, T_
                                             flags=cv2.CALIB_ZERO_DISPARITY, alpha=0)
 mapLx, mapLy = cv2.initUndistortRectifyMap(K_L, D_L, R1, P1, (w, h), cv2.CV_32FC1)
 mapRx, mapRy = cv2.initUndistortRectifyMap(K_R, D_R, R2, P2, (w, h), cv2.CV_32FC1)
-stereo = cv2.StereoSGBM_create(minDisparity=0, numDisparities=128, blockSize=7,
-                                P1=8*3*5*5, P2=32*3*5*5, disp12MaxDiff=1,
-                                preFilterCap=31, uniquenessRatio=15,
-                                speckleWindowSize=100, speckleRange=2,
+stereo = cv2.StereoSGBM_create(minDisparity=48, numDisparities=64, blockSize=11,
+                                P1=8*3*blocksize**2, P2=32*3*blocksize**2, disp12MaxDiff=1,
+                                uniquenessRatio=10,
+                                speckleWindowSize=150, speckleRange=2,
                                 mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY)
 
 # ------------------------------------------------
