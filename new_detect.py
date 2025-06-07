@@ -256,13 +256,16 @@ def display_interface():
 if __name__ == '__main__':
     log("Press 'n' for next detection, 'q' to quit.")
     cv2.namedWindow('Interface', cv2.WINDOW_NORMAL)
-    display_interface()
     while True:
+        # Continuously grab frames so the interface is populated even before
+        # running a detection cycle.
+        latest_frames['left'] = cv2.remap(capture_frame(0), mapLx, mapLy, cv2.INTER_CUBIC)
+        latest_frames['right'] = cv2.remap(capture_frame(2), mapRx, mapRy, cv2.INTER_CUBIC)
+        display_interface()
         key = cv2.waitKey(1) & 0xFF
         if key == ord('n'):
             run_cycle()
         elif key == ord('q'):
             break
-        display_interface()
     cv2.destroyAllWindows()
     arduino.close()
