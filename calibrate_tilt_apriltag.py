@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Calibrate camera tilt using an AprilTag marker.
 
-This script detects an AprilTag using the on-board cameras and
-computes the rotation angles (roll, pitch, yaw) that transform
-coordinates from the camera frame to the gripper frame.
+This script detects an AprilTag using the on-board cameras and computes the
+rotation angles (roll, pitch, yaw) that transform coordinates from the camera
+frame to the gripper frame.  It assumes a tag from the ``tagStandard41h12``
+family with a side length of 41 mm.
 
-It requires OpenCV with the `aruco` module and access to a camera.
+OpenCV with the ``aruco`` module must be available along with access to a
+camera.
 """
 
 import cv2
@@ -28,8 +30,9 @@ D_R = np.array([-0.559392, 0.869527, -0.0131288, -0.00425451, -1.42753])
 # -----------------------------------------------------------------------------
 # AprilTag detector configuration
 # -----------------------------------------------------------------------------
-TAG_SIZE = 0.05  # Tag side length in meters (adjust to your printed tag)
-DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11)
+# The AprilTag is 41 mm wide and uses the tagStandard41h12 family.
+TAG_SIZE = 0.041  # side length in meters
+DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_41h12)
 PARAMS = cv2.aruco.DetectorParameters()
 DETECTOR = cv2.aruco.ArucoDetector(DICT, PARAMS)
 
