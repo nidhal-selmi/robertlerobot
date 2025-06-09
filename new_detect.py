@@ -60,11 +60,11 @@ CLEARANCE_GS_M = np.array([0.0, 0.0, 0.03])
 # Offset from the AprilTag marker to the gripper origin (meters)
 # These values describe where the gripper sits relative to the
 # detected tag in the gripper coordinate frame.
-APRILTAG_TO_GRIPPER_M = np.array([0.02, 0.0, 0.0])
+APRILTAG_TO_GRIPPER_M = np.array([0.05, 0.0, 0.05])
 
 # Tilt angles around axes (degrees)
 TILT_X_DEG = 12.27  # upward tilt around X-axis
-TILT_Y_DEG = -33.68    # placeholder for Y-axis tilt
+TILT_Y_DEG = -36.68    # placeholder for Y-axis tilt
 TILT_Z_DEG = -6.58    # placeholder for Z-axis tilt
 # Convert to radians
 tx = np.deg2rad(TILT_X_DEG)
