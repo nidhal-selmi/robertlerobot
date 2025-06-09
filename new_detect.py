@@ -52,6 +52,16 @@ TAG_DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36H11)
 TAG_PARAMS = cv2.aruco.DetectorParameters()
 TAG_DETECTOR = cv2.aruco.ArucoDetector(TAG_DICT, TAG_PARAMS)
 
+# Clearance from gripper to the strawberry (meters)
+# Positive values move the gripper away from the berry along
+# the gripper's X, Y and Z axes.
+CLEARANCE_GS_M = np.array([0.0, 0.0, 0.03])
+
+# Offset from the AprilTag marker to the gripper origin (meters)
+# These values describe where the gripper sits relative to the
+# detected tag in the gripper coordinate frame.
+APRILTAG_TO_GRIPPER_M = np.array([0.02, 0.0, 0.0])
+
 # Tilt angles around axes (degrees)
 TILT_X_DEG = 0  # upward tilt around X-axis
 TILT_Y_DEG = -27    # placeholder for Y-axis tilt
@@ -211,8 +221,15 @@ def run_cycle(num_frames=NUM_FRAMES):
 
     delta_vec = P_t - P_b
     log(f"Delta_vec before tilt: {delta_vec}")
+
+    # Transform to the gripper coordinate frame
     marker_vec = R_tilt.dot(delta_vec)
-    mm = marker_vec * 1000.0
+
+    # Account for the AprilTag to gripper offset and the
+    # desired clearance from the berry
+    gripper_vec = marker_vec - APRILTAG_TO_GRIPPER_M - CLEARANCE_GS_M
+
+    mm = gripper_vec * 1000.0
     log(f"Move (mm) in marker frame: {mm}")
     sx = int(mm[0] * STEPS_PER_MM_X)
     sy = int(mm[1] * STEPS_PER_MM_YZ)
