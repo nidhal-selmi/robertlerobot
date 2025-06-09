@@ -53,9 +53,9 @@ TAG_PARAMS = cv2.aruco.DetectorParameters()
 TAG_DETECTOR = cv2.aruco.ArucoDetector(TAG_DICT, TAG_PARAMS)
 
 # Tilt angles around axes (degrees)
-TILT_X_DEG = 0  # upward tilt around X-axis
-TILT_Y_DEG = -27    # placeholder for Y-axis tilt
-TILT_Z_DEG = 0    # placeholder for Z-axis tilt
+TILT_X_DEG = 12.27  # upward tilt around X-axis
+TILT_Y_DEG = -33.68    # placeholder for Y-axis tilt
+TILT_Z_DEG = -6.58    # placeholder for Z-axis tilt
 # Convert to radians
 tx = np.deg2rad(TILT_X_DEG)
 ty = np.deg2rad(TILT_Y_DEG)
