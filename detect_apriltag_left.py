@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Preview the left camera feed and highlight AprilTag detections.
 
-This script opens the left camera, attempts to detect a 15 mm wide AprilTag,
-and displays the result live. Press 'q' in the display window to quit.
+This script opens the left camera, attempts to detect an AprilTag and displays
+the result live. It is configured for the ``tagStandard41h12`` family and
+expects a printed tag that is 41 mm wide. Press 'q' in the display window to
+quit.
 """
 
 import cv2
@@ -12,15 +14,16 @@ import time
 CAM_INDEX = 2  # device index for the left camera
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
-TAG_SIZE_M = 0.015  # 15 mm
+TAG_SIZE_M = 0.041  # tag side length in meters (41 mm)
 
 # Intrinsic parameters for the left camera
 fxL, fyL, cxL, cyL = 764.753, 759.377, 396.363, 243.605
 K_L = np.array([[fxL, 0, cxL], [0, fyL, cyL], [0, 0, 1]])
 D_L = np.array([-0.482866, 0.237679, 0.00102909, -0.0134808, -0.00693421])
 
-# AprilTag detector using OpenCV's aruco module
-DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36h11)
+# AprilTag detector using OpenCV's aruco module. Use the tagStandard41h12
+# family which provides more unique IDs than 36h11.
+DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_41h12)
 PARAMS = cv2.aruco.DetectorParameters()
 DETECTOR = cv2.aruco.ArucoDetector(DICT, PARAMS)
 
