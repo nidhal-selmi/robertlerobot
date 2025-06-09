@@ -3,8 +3,8 @@
 
 This script detects an AprilTag using the on-board cameras and computes the
 rotation angles (roll, pitch, yaw) that transform coordinates from the camera
-frame to the gripper frame.  It assumes a tag from the ``tagStandard41h12``
-family with a side length of 41 mm.
+frame to the gripper frame.  It assumes a tag from the ``tagStandard36h11``
+family with a side length of 36.5 mm.
 
 OpenCV with the ``aruco`` module must be available along with access to a
 camera.
@@ -30,9 +30,9 @@ D_R = np.array([-0.559392, 0.869527, -0.0131288, -0.00425451, -1.42753])
 # -----------------------------------------------------------------------------
 # AprilTag detector configuration
 # -----------------------------------------------------------------------------
-# The AprilTag is 41 mm wide and uses the tagStandard41h12 family.
-TAG_SIZE = 0.041  # side length in meters
-DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_41h12)
+# The AprilTag is 36.5 mm wide and uses the tagStandard36h11 family.
+TAG_SIZE = 0.0365  # side length in meters
+DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36H11)
 PARAMS = cv2.aruco.DetectorParameters()
 DETECTOR = cv2.aruco.ArucoDetector(DICT, PARAMS)
 
