@@ -23,7 +23,7 @@ D_L = np.array([-0.482866, 0.237679, 0.00102909, -0.0134808, -0.00693421])
 
 # AprilTag detector using OpenCV's aruco module. Use the tagStandard41h12
 # family which provides more unique IDs than 36h11.
-DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_41h12)
+DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36H11)
 PARAMS = cv2.aruco.DetectorParameters()
 DETECTOR = cv2.aruco.ArucoDetector(DICT, PARAMS)
 
