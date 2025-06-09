@@ -15,8 +15,8 @@ are displayed in separate windows.
 
 The repository also includes ``detect_apriltag_left.py`` and
 ``calibrate_tilt_apriltag.py`` for working with AprilTags. These helpers are
-configured for the ``tagStandard41h12`` family and expect a tag measuring
-41&nbsp;mm across.
+configured for the ``tagStandard36h11`` family and expect a tag measuring
+36.5&nbsp;mm across.
 
 Additional Arduino sketches would control the mechanical actuators that move the
 robotic arm and gripper.

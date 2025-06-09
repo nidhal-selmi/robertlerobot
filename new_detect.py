@@ -44,8 +44,13 @@ STEPS_PER_MM_X = 115.38
 STEPS_PER_MM_YZ = 18.75
 LOWER_RED1 = np.array([0, 120, 70]); UPPER_RED1 = np.array([10, 255, 255])
 LOWER_RED2 = np.array([170, 120, 70]); UPPER_RED2 = np.array([180, 255, 255])
-LOWER_BLUE = np.array([100, 150, 50]); UPPER_BLUE = np.array([140, 255, 255])
 KERNEL = np.ones((5,5), np.uint8)
+
+# AprilTag configuration (36h11 family, 36.5 mm marker)
+TAG_SIZE_M = 0.0365
+TAG_DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36H11)
+TAG_PARAMS = cv2.aruco.DetectorParameters()
+TAG_DETECTOR = cv2.aruco.ArucoDetector(TAG_DICT, TAG_PARAMS)
 
 # Tilt angles around axes (degrees)
 TILT_X_DEG = 0  # upward tilt around X-axis
@@ -168,18 +173,18 @@ def run_cycle(num_frames=NUM_FRAMES):
             cv2.rectangle(vis, (x, y), (x + ww, y + hh), (0, 0, 255), 2)
             pt = _avg_bbox_point(pts3d, bbox_t)
 
-        mask_b = cv2.morphologyEx(
-            cv2.inRange(hsv, LOWER_BLUE, UPPER_BLUE), cv2.MORPH_OPEN, KERNEL
-        )
-        cnts_b = cv2.findContours(mask_b, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
-        log(f"Blue contours found: {len(cnts_b)}")
+        gray = cv2.cvtColor(left, cv2.COLOR_BGR2GRAY)
+        corners, ids, _ = TAG_DETECTOR.detectMarkers(gray)
+        log(f"AprilTag detections: {0 if ids is None else len(ids)}")
         bbox_b = None
-        if cnts_b:
-            cb = max(cnts_b, key=cv2.contourArea)
-            bbox_b = cv2.boundingRect(cb)
-            bx, by, bw, bbh = bbox_b
-            cv2.rectangle(vis, (bx, by), (bx + bw, by + bbh), (255, 0, 0), 2)
-            pb = _avg_bbox_point(pts3d, bbox_b)
+        if ids is not None:
+            rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(
+                corners, TAG_SIZE_M, K_L, D_L
+            )
+            bbox_b = cv2.boundingRect(corners[0].astype(int))
+            cv2.aruco.drawDetectedMarkers(vis, corners)
+            cv2.drawFrameAxes(vis, K_L, D_L, rvecs[0], tvecs[0], TAG_SIZE_M * 0.5)
+            pb = tvecs[0].reshape(3)
 
         last_vis = vis
         if _is_valid_pt(pt) and _is_valid_pt(pb):
