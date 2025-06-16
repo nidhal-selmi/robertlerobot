@@ -17,9 +17,9 @@ FRAME_HEIGHT = 480
 TAG_SIZE_M = 0.0365  # tag side length in meters (36.5 mm)
 
 # Intrinsic parameters for the left camera
-fxL, fyL, cxL, cyL = 764.753, 759.377, 396.363, 243.605
+fxL, fyL, cxL, cyL = 709.46, 708.781, 361.165, 274.045
 K_L = np.array([[fxL, 0, cxL], [0, fyL, cyL], [0, 0, 1]])
-D_L = np.array([-0.482866, 0.237679, 0.00102909, -0.0134808, -0.00693421])
+D_L = np.array([-0.297109, -1.06046, -0.00744828, -0.0171288, 3.58896])
 
 # AprilTag detector using OpenCV's aruco module (tagStandard36h11 family).
 DICT = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_APRILTAG_36H11)
