@@ -55,7 +55,7 @@ TAG_DETECTOR = cv2.aruco.ArucoDetector(TAG_DICT, TAG_PARAMS)
 # Clearance from gripper to the strawberry (meters)
 # Positive values move the gripper away from the berry along
 # the gripper's X, Y and Z axes.
-CLEARANCE_GS_M = np.array([0.0, 0.0, 0.03])
+CLEARANCE_GS_M = np.array([0.03, 0.05, 0.03])
 
 # Offset from the AprilTag marker to the gripper origin (meters)
 # These values describe where the gripper sits relative to the
@@ -63,9 +63,9 @@ CLEARANCE_GS_M = np.array([0.0, 0.0, 0.03])
 APRILTAG_TO_GRIPPER_M = np.array([0.05, 0.0, 0.00])
 
 # Tilt angles around axes (degrees)
-TILT_X_DEG = 12.27  # upward tilt around X-axis
-TILT_Y_DEG = -36.68    # placeholder for Y-axis tilt
-TILT_Z_DEG = -6.58    # placeholder for Z-axis tilt
+TILT_X_DEG = 0  # upward tilt around X-axis
+TILT_Y_DEG = -35    # placeholder for Y-axis tilt
+TILT_Z_DEG = 0    # placeholder for Z-axis tilt
 # Convert to radians
 tx = np.deg2rad(TILT_X_DEG)
 ty = np.deg2rad(TILT_Y_DEG)
@@ -141,8 +141,8 @@ def run_cycle(num_frames=NUM_FRAMES):
     P_b_list = []
     last_vis = None
     while len(P_t_list) < num_frames:
-        left = cv2.remap(capture_frame(0), mapLx, mapLy, cv2.INTER_CUBIC)
-        right = cv2.remap(capture_frame(2), mapRx, mapRy, cv2.INTER_CUBIC)
+        left = cv2.remap(capture_frame(2), mapLx, mapLy, cv2.INTER_CUBIC)
+        right = cv2.remap(capture_frame(0), mapRx, mapRy, cv2.INTER_CUBIC)
         gL = cv2.cvtColor(left, cv2.COLOR_BGR2GRAY)
         gR = cv2.cvtColor(right, cv2.COLOR_BGR2GRAY)
         d16 = stereo.compute(gL, gR)
