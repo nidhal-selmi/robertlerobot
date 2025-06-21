@@ -133,6 +133,7 @@ def auto_center(cam_idx=4):
     time.sleep(0.1)
     centrage_en_cours = True
     last_pos = (w // 2, h // 2)
+    log("Auto centering... Press 'p' to pause or 'h' to go home.")
     while centrage_en_cours:
         ret, frame = cap.read()
         if not ret:
@@ -158,6 +159,22 @@ def auto_center(cam_idx=4):
         delta_y = last_pos[1] - image_center_y
         seuil = 50
 
+        # Draw feedback
+        cv2.circle(frame, last_pos, 5, (0, 255, 0), 2)
+        cv2.drawMarker(frame, (image_center_x, image_center_y), (255, 0, 0),
+                       markerType=cv2.MARKER_CROSS, markerSize=10, thickness=1)
+        latest_frames['vis'] = frame
+        display_interface()
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('p'):
+            log("Auto centering paused.")
+            cap.release()
+            return False
+        if key == ord('h'):
+            log("Return to home requested during centering.")
+            cap.release()
+            return 'home'
+
         if abs(delta_x) > seuil:
             if delta_x < 0:
                 log("➡️ Bouger à droite pour centrer")
@@ -179,6 +196,7 @@ def auto_center(cam_idx=4):
             centrage_en_cours = False
 
     cap.release()
+    return True
 
 # ------------------------------------------------
 # 7) Main cycle with verbose debug
@@ -359,6 +377,7 @@ def display_interface():
 # ------------------------------------------------
 if __name__ == '__main__':
     log("Press 'n' for next detection, 'q' to quit.")
+    log("Press 'p' to pause centering or 'h' to return home.")
     cv2.namedWindow('Interface', cv2.WINDOW_NORMAL)
     reverse_cmds = []
     mode = 'idle'
@@ -371,17 +390,15 @@ if __name__ == '__main__':
         key = cv2.waitKey(1) & 0xFF
         if key == ord('n') and mode == 'idle':
             reverse_cmds = run_cycle(return_to_start=False)
-            log("Press 'c' to start auto centering.")
-            mode = 'await_center'
-        elif key == ord('c') and mode == 'await_center':
-            auto_center()
-            log("Press 'r' to return to the original position.")
+            log("Press 'h' to return to the original position.")
             mode = 'await_return'
-        elif key == ord('r') and mode == 'await_return':
+        elif key == ord('h') and reverse_cmds:
             for cmd in reverse_cmds:
                 send_command(cmd)
             log("Returned to original position.")
             mode = 'idle'
+        elif key == ord('p'):
+            log("Pause requested.")
         elif key == ord('q'):
             break
     cv2.destroyAllWindows()
