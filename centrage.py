@@ -10,18 +10,18 @@
         if abs(delta_x) > seuil:
             if delta_x < 0:
                 print("➡️ Bouger à droite pour centrer")
-                arduino.write(b'9')
+                send_command(f"MOVE {CENTER_STEPS_X:+d} 0")
             else:
                 print("⬅️ Bouger à gauche pour centrer")
-                arduino.write(b'3')
+                send_command(f"MOVE {-CENTER_STEPS_X:+d} 0")
             time.sleep(0.2)
         elif abs(delta_y) > seuil:
             if delta_y < 0:
                 print("⬇️ Bouger en bas pour centrer")
-                arduino.write(b'8')
+                send_command(f"MOVE 0 {CENTER_STEPS_Y:+d}")
             else:
                 print("⬆️ Bouger en haut pour centrer")
-                arduino.write(b'2')
+                send_command(f"MOVE 0 {-CENTER_STEPS_Y:+d}")
             time.sleep(0.2)
         else:
             print("✅ Fraise centrée !")
