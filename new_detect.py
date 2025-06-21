@@ -42,6 +42,10 @@ def send_command(cmd):
 # ------------------------------------------------
 STEPS_PER_MM_X = 115.38
 STEPS_PER_MM_YZ = 18.75
+# Number of millimetres to move per centering step
+CENTER_MM = 1.0
+CENTER_STEPS_X = int(CENTER_MM * STEPS_PER_MM_X)
+CENTER_STEPS_Y = int(CENTER_MM * STEPS_PER_MM_YZ)
 LOWER_RED1 = np.array([0, 120, 70]); UPPER_RED1 = np.array([10, 255, 255])
 LOWER_RED2 = np.array([170, 120, 70]); UPPER_RED2 = np.array([180, 255, 255])
 KERNEL = np.ones((5,5), np.uint8)
@@ -157,18 +161,18 @@ def auto_center(cam_idx=4):
         if abs(delta_x) > seuil:
             if delta_x < 0:
                 log("➡️ Bouger à droite pour centrer")
-                arduino.write(b'9')
+                send_command(f"MOVE {CENTER_STEPS_X:+d} 0")
             else:
                 log("⬅️ Bouger à gauche pour centrer")
-                arduino.write(b'3')
+                send_command(f"MOVE {-CENTER_STEPS_X:+d} 0")
             time.sleep(0.2)
         elif abs(delta_y) > seuil:
             if delta_y < 0:
                 log("⬇️ Bouger en bas pour centrer")
-                arduino.write(b'8')
+                send_command(f"MOVE 0 {CENTER_STEPS_Y:+d}")
             else:
                 log("⬆️ Bouger en haut pour centrer")
-                arduino.write(b'2')
+                send_command(f"MOVE 0 {-CENTER_STEPS_Y:+d}")
             time.sleep(0.2)
         else:
             log("✅ Fraise centrée !")
