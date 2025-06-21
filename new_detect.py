@@ -169,6 +169,64 @@ def fine_align_with_gripper(cam_idx=4, tol_px=10, max_iter=10):
     return total_x, total_y
 
 # ------------------------------------------------
+# Automatic centering using arrow commands from centrage.py
+# ------------------------------------------------
+def auto_center(cam_idx=4):
+    """Automatically center the berry using simple byte commands."""
+    cap = cv2.VideoCapture(cam_idx)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+    time.sleep(0.1)
+    centrage_en_cours = True
+    last_pos = (w // 2, h // 2)
+    while centrage_en_cours:
+        ret, frame = cap.read()
+        if not ret:
+            continue
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        mask = cv2.morphologyEx(
+            cv2.bitwise_or(
+                cv2.inRange(hsv, LOWER_RED1, UPPER_RED1),
+                cv2.inRange(hsv, LOWER_RED2, UPPER_RED2),
+            ),
+            cv2.MORPH_OPEN,
+            KERNEL,
+        )
+        cnts = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
+        if cnts:
+            c = max(cnts, key=cv2.contourArea)
+            x, y, ww, hh = cv2.boundingRect(c)
+            last_pos = (x + ww // 2, y + hh // 2)
+
+        image_center_x = frame.shape[1] // 2
+        image_center_y = frame.shape[0] // 2
+        delta_x = last_pos[0] - image_center_x
+        delta_y = last_pos[1] - image_center_y
+        seuil = 50
+
+        if abs(delta_x) > seuil:
+            if delta_x < 0:
+                log("➡️ Bouger à droite pour centrer")
+                arduino.write(b'9')
+            else:
+                log("⬅️ Bouger à gauche pour centrer")
+                arduino.write(b'3')
+            time.sleep(0.2)
+        elif abs(delta_y) > seuil:
+            if delta_y < 0:
+                log("⬇️ Bouger en bas pour centrer")
+                arduino.write(b'8')
+            else:
+                log("⬆️ Bouger en haut pour centrer")
+                arduino.write(b'2')
+            time.sleep(0.2)
+        else:
+            log("✅ Fraise centrée !")
+            centrage_en_cours = False
+
+    cap.release()
+
+# ------------------------------------------------
 # 7) Main cycle with verbose debug
 NUM_FRAMES = 5
 
@@ -186,7 +244,7 @@ def _is_valid_pt(pt: np.ndarray) -> bool:
     return pt is not None and np.all(np.isfinite(pt)) and np.linalg.norm(pt) < 1.0
 
 
-def run_cycle(num_frames=NUM_FRAMES):
+def run_cycle(num_frames=NUM_FRAMES, return_to_start=True):
     P_t_list = []
     P_b_list = []
     last_vis = None
@@ -299,13 +357,20 @@ def run_cycle(num_frames=NUM_FRAMES):
     send_command(f"MOVE_Z {advance_steps:+d}")
     time.sleep(0.5)
 
-    # Reverse all movements
-    send_command(f"MOVE_Z {-advance_steps:+d}")
-    send_command(f"MOVE {-corr_x:+d} {-corr_y:+d}")
-    send_command(f"MOVE_Z {-sz:+d}")
-    send_command(f"MOVE {-sx:+d} {-sy:+d}")
+    reverse_cmds = [
+        f"MOVE_Z {-advance_steps:+d}",
+        f"MOVE {-corr_x:+d} {-corr_y:+d}",
+        f"MOVE_Z {-sz:+d}",
+        f"MOVE {-sx:+d} {-sy:+d}",
+    ]
+
+    if return_to_start:
+        for cmd in reverse_cmds:
+            send_command(cmd)
 
     time.sleep(0.1)
+
+    return reverse_cmds
 
 # ------------------------------------------------
 # 8) Display utility
@@ -342,6 +407,8 @@ def display_interface():
 if __name__ == '__main__':
     log("Press 'n' for next detection, 'q' to quit.")
     cv2.namedWindow('Interface', cv2.WINDOW_NORMAL)
+    reverse_cmds = []
+    mode = 'idle'
     while True:
         # Continuously grab frames so the interface is populated even before
         # running a detection cycle.
@@ -349,8 +416,19 @@ if __name__ == '__main__':
         latest_frames['right'] = cv2.remap(capture_frame(2), mapRx, mapRy, cv2.INTER_CUBIC)
         display_interface()
         key = cv2.waitKey(1) & 0xFF
-        if key == ord('n'):
-            run_cycle()
+        if key == ord('n') and mode == 'idle':
+            reverse_cmds = run_cycle(return_to_start=False)
+            log("Press 'c' to start auto centering.")
+            mode = 'await_center'
+        elif key == ord('c') and mode == 'await_center':
+            auto_center()
+            log("Press 'r' to return to the original position.")
+            mode = 'await_return'
+        elif key == ord('r') and mode == 'await_return':
+            for cmd in reverse_cmds:
+                send_command(cmd)
+            log("Returned to original position.")
+            mode = 'idle'
         elif key == ord('q'):
             break
     cv2.destroyAllWindows()
