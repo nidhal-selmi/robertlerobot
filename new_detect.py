@@ -304,7 +304,7 @@ def run_cycle(num_frames=NUM_FRAMES, return_to_start=True):
     time.sleep(0.5)
 
     # Fine tune by centering with the gripper camera
-    auto_center(cam_idx=6)
+    auto_center(cam_idx=4)
 
     # Advance 4 cm towards the berry
     advance_steps = int(40 * STEPS_PER_MM_YZ)
