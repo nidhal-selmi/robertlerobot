@@ -121,7 +121,7 @@ def capture_frame(idx):
 # ------------------------------------------------
 # Automatic centering using arrow commands from centrage.py
 # ------------------------------------------------
-def auto_center(cam_idx=6):
+def auto_center(cam_idx=4):
     """Automatically center the berry using simple byte commands."""
     cap = cv2.VideoCapture(cam_idx)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
