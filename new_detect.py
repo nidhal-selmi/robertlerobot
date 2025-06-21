@@ -42,7 +42,6 @@ def send_command(cmd):
 # ------------------------------------------------
 STEPS_PER_MM_X = 115.38
 STEPS_PER_MM_YZ = 18.75
-MM_PER_PX_G = 0.25  # mm per pixel for gripper camera correction
 LOWER_RED1 = np.array([0, 120, 70]); UPPER_RED1 = np.array([10, 255, 255])
 LOWER_RED2 = np.array([170, 120, 70]); UPPER_RED2 = np.array([180, 255, 255])
 KERNEL = np.ones((5,5), np.uint8)
@@ -120,58 +119,9 @@ def capture_frame(idx):
     return frame
 
 # ------------------------------------------------
-# Helper: fine alignment using the gripper camera
-# ------------------------------------------------
-def fine_align_with_gripper(cam_idx=4, tol_px=10, max_iter=10):
-    """Center the berry using the gripper-mounted camera."""
-    cap = cv2.VideoCapture(cam_idx)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
-    time.sleep(0.1)
-    total_x = 0
-    total_y = 0
-    for _ in range(max_iter):
-        ret, frame = cap.read()
-        if not ret:
-            continue
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        mask = cv2.morphologyEx(
-            cv2.bitwise_or(
-                cv2.inRange(hsv, LOWER_RED1, UPPER_RED1),
-                cv2.inRange(hsv, LOWER_RED2, UPPER_RED2),
-            ),
-            cv2.MORPH_OPEN,
-            KERNEL,
-        )
-        cnts = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
-        if not cnts:
-            continue
-        c = max(cnts, key=cv2.contourArea)
-        x, y, ww, hh = cv2.boundingRect(c)
-        cx = x + ww // 2
-        cy = y + hh // 2
-        dx = cx - w // 2
-        dy = cy - h // 2
-        log(f"Gripper cam offset px: ({dx}, {dy})")
-        if abs(dx) < tol_px and abs(dy) < tol_px:
-            break
-        mm_x = -dx * MM_PER_PX_G
-        mm_y = -dy * MM_PER_PX_G
-        sx = int(mm_x * STEPS_PER_MM_X)
-        sy = int(mm_y * STEPS_PER_MM_YZ)
-        if sx == 0 and sy == 0:
-            break
-        send_command(f"MOVE {sx:+d} {sy:+d}")
-        total_x += sx
-        total_y += sy
-        time.sleep(0.3)
-    cap.release()
-    return total_x, total_y
-
-# ------------------------------------------------
 # Automatic centering using arrow commands from centrage.py
 # ------------------------------------------------
-def auto_center(cam_idx=4):
+def auto_center(cam_idx=6):
     """Automatically center the berry using simple byte commands."""
     cap = cv2.VideoCapture(cam_idx)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
@@ -349,8 +299,8 @@ def run_cycle(num_frames=NUM_FRAMES, return_to_start=True):
     send_command(f"MOVE_Z {sz:+d}")
     time.sleep(0.5)
 
-    # Fine tune using the gripper camera
-    corr_x, corr_y = fine_align_with_gripper()
+    # Fine tune by centering with the gripper camera
+    auto_center(cam_idx=6)
 
     # Advance 4 cm towards the berry
     advance_steps = int(40 * STEPS_PER_MM_YZ)
@@ -359,7 +309,6 @@ def run_cycle(num_frames=NUM_FRAMES, return_to_start=True):
 
     reverse_cmds = [
         f"MOVE_Z {-advance_steps:+d}",
-        f"MOVE {-corr_x:+d} {-corr_y:+d}",
         f"MOVE_Z {-sz:+d}",
         f"MOVE {-sx:+d} {-sy:+d}",
     ]
