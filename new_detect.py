@@ -43,7 +43,7 @@ def send_command(cmd):
 STEPS_PER_MM_X = 115.38
 STEPS_PER_MM_YZ = 18.75
 # Number of millimetres to move per centering step
-CENTER_MM = 1.0
+CENTER_MM = 5
 CENTER_STEPS_X = int(CENTER_MM * STEPS_PER_MM_X)
 CENTER_STEPS_Y = int(CENTER_MM * STEPS_PER_MM_YZ)
 LOWER_RED1 = np.array([0, 120, 70]); UPPER_RED1 = np.array([10, 255, 255])
@@ -301,7 +301,7 @@ def run_cycle(num_frames=NUM_FRAMES, return_to_start=True):
     # Move to the clearance position
     send_command(f"MOVE {sx:+d} {sy:+d}")
     send_command(f"MOVE_Z {sz:+d}")
-    time.sleep(0.5)
+    time.sleep(2)
 
     # Fine tune by centering with the gripper camera
     auto_center(cam_idx=4)
@@ -309,7 +309,7 @@ def run_cycle(num_frames=NUM_FRAMES, return_to_start=True):
     # Advance 4 cm towards the berry
     advance_steps = int(40 * STEPS_PER_MM_YZ)
     send_command(f"MOVE_Z {advance_steps:+d}")
-    time.sleep(0.5)
+    time.sleep(2)
 
     reverse_cmds = [
         f"MOVE_Z {-advance_steps:+d}",
