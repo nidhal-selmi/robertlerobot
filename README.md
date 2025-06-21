@@ -13,7 +13,8 @@ script averages the 3D positions of the detected markers over several frames for
 more stable measurements. The left camera, right camera and detection overlay
 are displayed in separate windows.  After the initial stereo-based movement, the
 script switches to a camera mounted on the gripper (index&nbsp;4) to centre the
-strawberry before advancing the gripper.
+strawberry before advancing the gripper. During auto centering you can press
+**p** to pause or **h** to immediately return the robot to its start position.
 
 The repository also includes ``detect_apriltag_left.py`` and
 ``calibrate_tilt_apriltag.py`` for working with AprilTags. These helpers are
