@@ -196,7 +196,7 @@ def auto_center(cam_idx=4):
 
 # ------------------------------------------------
 # 7) Main cycle with verbose debug
-NUM_FRAMES = 5
+NUM_FRAMES = 1
 
 def _avg_bbox_point(pts3d, bbox):
     x, y, w_, h_ = bbox
