@@ -61,7 +61,7 @@ TAG_DETECTOR = cv2.aruco.ArucoDetector(TAG_DICT, TAG_PARAMS)
 # Clearance from gripper to the strawberry (meters)
 # Positive values move the gripper away from the berry along
 # the gripper's X, Y and Z axes.
-CLEARANCE_GS_M = np.array([0.05, 0.00, 0.1])
+CLEARANCE_GS_M = np.array([0.05, 0.00, 0.05])
 
 # Offset from the AprilTag marker to the gripper origin (meters)
 # These values describe where the gripper sits relative to the
