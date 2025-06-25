@@ -8,9 +8,9 @@ physically pick the strawberries. The Raspberry Pi runs Python scripts to detect
 ripe strawberries and coordinate the harvesting sequence.
 
 `new_detect.py` runs on the Raspberry Pi and shows a local interface using
-OpenCV. Press **n** to capture a burst of stereo frames and run detection. The
-script averages the 3D positions of the detected markers over several frames for
-more stable measurements. The left camera, right camera and detection overlay
+OpenCV. Press **n** to capture a pair of stereo frames and run detection. The
+script now uses a single set of frames to compute the 3D position of the
+detected markers. The left camera, right camera and detection overlay
 are displayed in separate windows.  After the initial stereo-based movement, the
 script switches to a camera mounted on the gripper (index&nbsp;4) to centre the
 strawberry before advancing the gripper. During auto centering you can press
