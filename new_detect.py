@@ -8,6 +8,8 @@ import cv2
 import numpy as np
 import serial
 import time
+import os
+from ultralytics import YOLO
 
 # ------------------------------------------------
 # Logging utility to capture messages for on-screen display
@@ -32,6 +34,9 @@ ARDUINO_PORT = '/dev/ttyACM0'
 BAUDRATE = 9600
 arduino = serial.Serial(ARDUINO_PORT, BAUDRATE, timeout=1)
 
+# YOLOv8 model for strawberry detection
+MODEL = YOLO(os.path.join(os.path.dirname(__file__), 'best.pt'))
+
 def send_command(cmd):
     log(f">>> Sending: {cmd}")
     arduino.write((cmd + "\n").encode())
@@ -46,9 +51,6 @@ STEPS_PER_MM_YZ = 18.75
 CENTER_MM = 5
 CENTER_STEPS_X = int(CENTER_MM * STEPS_PER_MM_X)
 CENTER_STEPS_Y = int(CENTER_MM * STEPS_PER_MM_YZ)
-LOWER_RED1 = np.array([0, 120, 70]); UPPER_RED1 = np.array([10, 255, 255])
-LOWER_RED2 = np.array([170, 120, 70]); UPPER_RED2 = np.array([180, 255, 255])
-KERNEL = np.ones((5,5), np.uint8)
 
 # AprilTag configuration (36h11 family, 36.5 mm marker)
 TAG_SIZE_M = 0.0365
@@ -138,20 +140,14 @@ def auto_center(cam_idx=4):
         ret, frame = cap.read()
         if not ret:
             continue
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        mask = cv2.morphologyEx(
-            cv2.bitwise_or(
-                cv2.inRange(hsv, LOWER_RED1, UPPER_RED1),
-                cv2.inRange(hsv, LOWER_RED2, UPPER_RED2),
-            ),
-            cv2.MORPH_OPEN,
-            KERNEL,
-        )
-        cnts = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
-        if cnts:
-            c = max(cnts, key=cv2.contourArea)
-            x, y, ww, hh = cv2.boundingRect(c)
-            last_pos = (x + ww // 2, y + hh // 2)
+        results = MODEL(frame, verbose=False)[0]
+        if len(results.boxes):
+            boxes = results.boxes.xyxy.cpu().numpy()
+            confs = results.boxes.conf.cpu().numpy()
+            best_idx = confs.argmax()
+            x1, y1, x2, y2 = boxes[best_idx].astype(int)
+            last_pos = ((x1 + x2) // 2, (y1 + y2) // 2)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
 
         image_center_x = frame.shape[1] // 2
         image_center_y = frame.shape[0] // 2
@@ -241,26 +237,18 @@ def run_cycle(num_frames=NUM_FRAMES, return_to_start=True):
         latest_frames['disp'] = cv2.applyColorMap(dv, cv2.COLORMAP_JET)
 
         vis = left.copy()
-        hsv = cv2.cvtColor(left, cv2.COLOR_BGR2HSV)
-
-        mask_t = cv2.morphologyEx(
-            cv2.bitwise_or(
-                cv2.inRange(hsv, LOWER_RED1, UPPER_RED1),
-                cv2.inRange(hsv, LOWER_RED2, UPPER_RED2),
-            ),
-            cv2.MORPH_OPEN,
-            KERNEL,
-        )
-        cnts = cv2.findContours(mask_t, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
-        log(f"Red contours found: {len(cnts)}")
+        results = MODEL(left, verbose=False)[0]
+        log(f"YOLO detections: {len(results.boxes)}")
         pt = None
         pb = None
         bbox_t = None
-        if cnts:
-            c = max(cnts, key=cv2.contourArea)
-            bbox_t = cv2.boundingRect(c)
-            x, y, ww, hh = bbox_t
-            cv2.rectangle(vis, (x, y), (x + ww, y + hh), (0, 0, 255), 2)
+        if len(results.boxes):
+            boxes = results.boxes.xyxy.cpu().numpy()
+            confs = results.boxes.conf.cpu().numpy()
+            best_idx = confs.argmax()
+            x1, y1, x2, y2 = boxes[best_idx].astype(int)
+            bbox_t = (x1, y1, x2 - x1, y2 - y1)
+            cv2.rectangle(vis, (x1, y1), (x2, y2), (0, 0, 255), 2)
             pt = _avg_bbox_point(pts3d, bbox_t)
 
         gray = cv2.cvtColor(left, cv2.COLOR_BGR2GRAY)
