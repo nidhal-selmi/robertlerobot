@@ -240,8 +240,8 @@ def run_cycle(num_frames=NUM_FRAMES, return_to_start=True):
     P_b_list = []
     last_vis = None
     while len(P_t_list) < num_frames:
-        raw_left = capture_frame(2)
-        raw_right = capture_frame(0)
+        raw_left = capture_frame(0)
+        raw_right = capture_frame(2)
 
         # Detect the AprilTag on the raw images before rectification
         grayL = cv2.cvtColor(raw_left, cv2.COLOR_BGR2GRAY)
