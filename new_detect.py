@@ -116,6 +116,7 @@ stereo = cv2.StereoSGBM_create(minDisparity=0, numDisparities=128, blockSize=11,
 # 6) Frame helper
 GRIPPER_CAM_INDEX = 4
 gripper_cap = None
+cap_cache = {}
 
 
 def capture_frame(idx):
@@ -147,7 +148,10 @@ def _get_gripper_cap():
 
 
 def release_cameras():
-    global gripper_cap
+    global gripper_cap, cap_cache
+    for cap in cap_cache.values():
+        cap.release()
+    cap_cache.clear()
     if gripper_cap is not None:
         gripper_cap.release()
         gripper_cap = None
