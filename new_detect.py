@@ -116,22 +116,21 @@ stereo = cv2.StereoSGBM_create(minDisparity=0, numDisparities=128, blockSize=11,
 # 6) Frame helper
 GRIPPER_CAM_INDEX = 4
 gripper_cap = None
-cap_cache = {}
 
 
 def capture_frame(idx):
-    """Grab a single frame from ``idx`` while reusing ``VideoCapture`` objects."""
-    cap = cap_cache.get(idx)
-    if cap is None:
-        cap = cv2.VideoCapture(idx)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
-        time.sleep(0.1)
-        cap_cache[idx] = cap
+    """Grab a single frame from ``idx``.
+
+    The stereo cameras are opened and released for each capture so that only
+    one device is active at any time.
+    """
+    cap = cv2.VideoCapture(idx)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+    time.sleep(0.1)
     ret, frame = cap.read()
+    cap.release()
     if not ret:
-        cap.release()
-        cap_cache.pop(idx, None)
         raise RuntimeError(f"Camera {idx} capture failed")
     return frame
 
@@ -148,10 +147,7 @@ def _get_gripper_cap():
 
 
 def release_cameras():
-    global gripper_cap, cap_cache
-    for cap in cap_cache.values():
-        cap.release()
-    cap_cache.clear()
+    global gripper_cap
     if gripper_cap is not None:
         gripper_cap.release()
         gripper_cap = None
