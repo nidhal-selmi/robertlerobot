@@ -142,6 +142,14 @@ def auto_center(cam_idx=GRIPPER_CAM_INDEX):
     """Automatically center the berry using simple byte commands."""
     centrage_en_cours = True
     last_pos = (GRIPPER_W // 2, GRIPPER_H // 2)
+
+    # Track previous error to detect overshoot and reduce the step size
+    prev_delta_x = None
+    prev_delta_y = None
+    step_x = CENTER_STEPS_X
+    step_y = CENTER_STEPS_Y
+    overshoot_x = False
+    overshoot_y = False
     log("Auto centering... Press 'p' to pause or 'h' to go home.")
     while centrage_en_cours:
         frame = capture_frame(cam_idx, width=GRIPPER_W, height=GRIPPER_H)
@@ -160,6 +168,16 @@ def auto_center(cam_idx=GRIPPER_CAM_INDEX):
         delta_y = last_pos[1] - image_center_y
         seuil = 50
 
+        if prev_delta_x is not None and delta_x * prev_delta_x < 0 and not overshoot_x:
+            step_x = max(1, CENTER_STEPS_X // 2)
+            overshoot_x = True
+            log("Halving X step due to overshoot")
+
+        if prev_delta_y is not None and delta_y * prev_delta_y < 0 and not overshoot_y:
+            step_y = max(1, CENTER_STEPS_Y // 2)
+            overshoot_y = True
+            log("Halving Y step due to overshoot")
+
         # Draw feedback
         cv2.circle(frame, last_pos, 5, (0, 255, 0), 2)
         cv2.drawMarker(frame, (image_center_x, image_center_y), (255, 0, 0),
@@ -177,22 +195,25 @@ def auto_center(cam_idx=GRIPPER_CAM_INDEX):
         if abs(delta_x) > seuil:
             if delta_x > 0:
                 log("➡️ Bouger à droite pour centrer")
-                send_command(f"MOVE {CENTER_STEPS_X:+d} 0")
+                send_command(f"MOVE {step_x:+d} 0")
             else:
                 log("⬅️ Bouger à gauche pour centrer")
-                send_command(f"MOVE {-CENTER_STEPS_X:+d} 0")
+                send_command(f"MOVE {-step_x:+d} 0")
             time.sleep(0.2)
         elif abs(delta_y) > seuil:
             if delta_y > 0:
                 log("⬇️ Bouger en bas pour centrer")
-                send_command(f"MOVE 0 {CENTER_STEPS_Y:+d}")
+                send_command(f"MOVE 0 {step_y:+d}")
             else:
                 log("⬆️ Bouger en haut pour centrer")
-                send_command(f"MOVE 0 {-CENTER_STEPS_Y:+d}")
+                send_command(f"MOVE 0 {-step_y:+d}")
             time.sleep(0.2)
         else:
             log("✅ Fraise centrée !")
             centrage_en_cours = False
+
+        prev_delta_x = delta_x
+        prev_delta_y = delta_y
 
     return True
 
