@@ -119,12 +119,18 @@ gripper_cap = None
 
 
 def capture_frame(idx):
-    cap = cv2.VideoCapture(idx)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+    """Grab a single frame from ``idx`` while reusing ``VideoCapture`` objects."""
+    cap = cap_cache.get(idx)
+    if cap is None:
+        cap = cv2.VideoCapture(idx)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+        time.sleep(0.1)
+        cap_cache[idx] = cap
     ret, frame = cap.read()
-    cap.release()
     if not ret:
+        cap.release()
+        cap_cache.pop(idx, None)
         raise RuntimeError(f"Camera {idx} capture failed")
     return frame
 
@@ -338,7 +344,7 @@ def run_cycle(num_frames=NUM_FRAMES, return_to_start=True):
     # Move to the clearance position
     send_command(f"MOVE {sx:+d} {sy:+d}")
     send_command(f"MOVE_Z {sz:+d}")
-    time.sleep(2)
+    time.sleep(4)
 
     # Fine tune by centering with the gripper camera
     auto_center(cam_idx=4)
