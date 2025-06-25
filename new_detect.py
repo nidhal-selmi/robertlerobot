@@ -98,6 +98,7 @@ R_lr = np.array([
 ])
 T_lr = np.array([-52.1338, -0.397713, 0.764734]) / 1000.0
 h, w = 480, 640
+GRIPPER_H, GRIPPER_W = 240, 320
 
 # ------------------------------------------------
 # 5) Stereo rectify & matcher
@@ -140,8 +141,8 @@ def _get_gripper_cap():
     global gripper_cap
     if gripper_cap is None:
         gripper_cap = cv2.VideoCapture(GRIPPER_CAM_INDEX)
-        gripper_cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
-        gripper_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+        gripper_cap.set(cv2.CAP_PROP_FRAME_WIDTH, GRIPPER_W)
+        gripper_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, GRIPPER_H)
         time.sleep(0.1)
     return gripper_cap
 
@@ -159,7 +160,7 @@ def auto_center(cam_idx=GRIPPER_CAM_INDEX):
     """Automatically center the berry using simple byte commands."""
     cap = _get_gripper_cap()
     centrage_en_cours = True
-    last_pos = (w // 2, h // 2)
+    last_pos = (GRIPPER_W // 2, GRIPPER_H // 2)
     log("Auto centering... Press 'p' to pause or 'h' to go home.")
     while centrage_en_cours:
         ret, frame = cap.read()
@@ -184,7 +185,7 @@ def auto_center(cam_idx=GRIPPER_CAM_INDEX):
         cv2.circle(frame, last_pos, 5, (0, 255, 0), 2)
         cv2.drawMarker(frame, (image_center_x, image_center_y), (255, 0, 0),
                        markerType=cv2.MARKER_CROSS, markerSize=10, thickness=1)
-        latest_frames['vis'] = frame
+        latest_frames['vis'] = cv2.resize(frame, (w, h))
         display_interface()
         key = cv2.waitKey(1) & 0xFF
         if key == ord('p'):
