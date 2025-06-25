@@ -337,7 +337,7 @@ def run_cycle(num_frames=NUM_FRAMES, return_to_start=True):
     # Move to the clearance position
     send_command(f"MOVE {sx:+d} {sy:+d}")
     send_command(f"MOVE_Z {sz:+d}")
-    time.sleep(2)
+    time.sleep(4)
 
     # Fine tune by centering with the gripper camera
     auto_center(cam_idx=4)
