@@ -17,6 +17,8 @@ strawberry before advancing the gripper. Instead of a continuous feed, a single
 320x240 frame is captured for each correction move so centering finishes faster.
 During auto centering you can press
 **p** to pause or **h** to immediately return the robot to its start position.
+If a correction overshoots the centre, the next move uses half the initial step
+to gently settle on the target.
 
 The repository also includes ``detect_apriltag_left.py`` and
 ``calibrate_tilt_apriltag.py`` for working with AprilTags. These helpers are
