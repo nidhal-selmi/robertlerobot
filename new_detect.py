@@ -59,7 +59,7 @@ TAG_DETECTOR = cv2.aruco.ArucoDetector(TAG_DICT, TAG_PARAMS)
 # Clearance from gripper to the strawberry (meters)
 # Positive values move the gripper away from the berry along
 # the gripper's X, Y and Z axes.
-CLEARANCE_GS_M = np.array([0.05, 0.03, 0.03])
+CLEARANCE_GS_M = np.array([0.05, 0.03, 0.06])
 
 # Offset from the AprilTag marker to the gripper origin (meters)
 # These values describe where the gripper sits relative to the
@@ -176,7 +176,7 @@ def auto_center(cam_idx=4):
             return 'home'
 
         if abs(delta_x) > seuil:
-            if delta_x < 0:
+            if delta_x > 0:
                 log("➡️ Bouger à droite pour centrer")
                 send_command(f"MOVE {CENTER_STEPS_X:+d} 0")
             else:
@@ -184,7 +184,7 @@ def auto_center(cam_idx=4):
                 send_command(f"MOVE {-CENTER_STEPS_X:+d} 0")
             time.sleep(0.2)
         elif abs(delta_y) > seuil:
-            if delta_y < 0:
+            if delta_y > 0:
                 log("⬇️ Bouger en bas pour centrer")
                 send_command(f"MOVE 0 {CENTER_STEPS_Y:+d}")
             else:
