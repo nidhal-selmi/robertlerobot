@@ -114,7 +114,8 @@ stereo = cv2.StereoSGBM_create(minDisparity=0, numDisparities=128, blockSize=11,
 
 # ------------------------------------------------
 # 6) Frame helper
-cap_cache = {}
+GRIPPER_CAM_INDEX = 4
+gripper_cap = None
 
 
 def capture_frame(idx):
@@ -134,20 +135,29 @@ def capture_frame(idx):
     return frame
 
 
+def _get_gripper_cap():
+    """Return a cached ``VideoCapture`` for the gripper camera."""
+    global gripper_cap
+    if gripper_cap is None:
+        gripper_cap = cv2.VideoCapture(GRIPPER_CAM_INDEX)
+        gripper_cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
+        gripper_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+        time.sleep(0.1)
+    return gripper_cap
+
+
 def release_cameras():
-    for cap in cap_cache.values():
-        cap.release()
-    cap_cache.clear()
+    global gripper_cap
+    if gripper_cap is not None:
+        gripper_cap.release()
+        gripper_cap = None
 
 # ------------------------------------------------
 # Automatic centering using arrow commands from centrage.py
 # ------------------------------------------------
-def auto_center(cam_idx=4):
+def auto_center(cam_idx=GRIPPER_CAM_INDEX):
     """Automatically center the berry using simple byte commands."""
-    cap = cv2.VideoCapture(cam_idx)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
-    time.sleep(0.1)
+    cap = _get_gripper_cap()
     centrage_en_cours = True
     last_pos = (w // 2, h // 2)
     log("Auto centering... Press 'p' to pause or 'h' to go home.")
@@ -179,11 +189,9 @@ def auto_center(cam_idx=4):
         key = cv2.waitKey(1) & 0xFF
         if key == ord('p'):
             log("Auto centering paused.")
-            cap.release()
             return False
         if key == ord('h'):
             log("Return to home requested during centering.")
-            cap.release()
             return 'home'
 
         if abs(delta_x) > seuil:
@@ -206,7 +214,6 @@ def auto_center(cam_idx=4):
             log("✅ Fraise centrée !")
             centrage_en_cours = False
 
-    cap.release()
     return True
 
 # ------------------------------------------------
