@@ -114,15 +114,30 @@ stereo = cv2.StereoSGBM_create(minDisparity=0, numDisparities=128, blockSize=11,
 
 # ------------------------------------------------
 # 6) Frame helper
+cap_cache = {}
+
+
 def capture_frame(idx):
-    cap = cv2.VideoCapture(idx)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+    """Grab a single frame from ``idx`` while reusing ``VideoCapture`` objects."""
+    cap = cap_cache.get(idx)
+    if cap is None:
+        cap = cv2.VideoCapture(idx)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+        time.sleep(0.1)
+        cap_cache[idx] = cap
     ret, frame = cap.read()
-    cap.release()
     if not ret:
+        cap.release()
+        cap_cache.pop(idx, None)
         raise RuntimeError(f"Camera {idx} capture failed")
     return frame
+
+
+def release_cameras():
+    for cap in cap_cache.values():
+        cap.release()
+    cap_cache.clear()
 
 # ------------------------------------------------
 # Automatic centering using arrow commands from centrage.py
@@ -405,4 +420,5 @@ if __name__ == '__main__':
         elif key == ord('q'):
             break
     cv2.destroyAllWindows()
+    release_cameras()
     arduino.close()
