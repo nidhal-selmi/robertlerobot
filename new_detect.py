@@ -116,18 +116,13 @@ stereo = cv2.StereoSGBM_create(minDisparity=0, numDisparities=128, blockSize=11,
 # ------------------------------------------------
 # 6) Frame helper
 GRIPPER_CAM_INDEX = 4
-gripper_cap = None
 
 
-def capture_frame(idx):
-    """Grab a single frame from ``idx``.
-
-    The stereo cameras are opened and released for each capture so that only
-    one device is active at any time.
-    """
+def capture_frame(idx, width=w, height=h):
+    """Grab a single frame from ``idx`` using the provided dimensions."""
     cap = cv2.VideoCapture(idx)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
     time.sleep(0.1)
     ret, frame = cap.read()
     cap.release()
@@ -136,36 +131,20 @@ def capture_frame(idx):
     return frame
 
 
-def _get_gripper_cap():
-    """Return a cached ``VideoCapture`` for the gripper camera."""
-    global gripper_cap
-    if gripper_cap is None:
-        gripper_cap = cv2.VideoCapture(GRIPPER_CAM_INDEX)
-        gripper_cap.set(cv2.CAP_PROP_FRAME_WIDTH, GRIPPER_W)
-        gripper_cap.set(cv2.CAP_PROP_FRAME_HEIGHT, GRIPPER_H)
-        time.sleep(0.1)
-    return gripper_cap
-
-
 def release_cameras():
-    global gripper_cap
-    if gripper_cap is not None:
-        gripper_cap.release()
-        gripper_cap = None
+    """Placeholder for releasing any cached camera handles."""
+    pass
 
 # ------------------------------------------------
 # Automatic centering using arrow commands from centrage.py
 # ------------------------------------------------
 def auto_center(cam_idx=GRIPPER_CAM_INDEX):
     """Automatically center the berry using simple byte commands."""
-    cap = _get_gripper_cap()
     centrage_en_cours = True
     last_pos = (GRIPPER_W // 2, GRIPPER_H // 2)
     log("Auto centering... Press 'p' to pause or 'h' to go home.")
     while centrage_en_cours:
-        ret, frame = cap.read()
-        if not ret:
-            continue
+        frame = capture_frame(cam_idx, width=GRIPPER_W, height=GRIPPER_H)
         results = MODEL(frame, verbose=False)[0]
         if len(results.boxes):
             boxes = results.boxes.xyxy.cpu().numpy()
