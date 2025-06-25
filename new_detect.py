@@ -217,8 +217,35 @@ def run_cycle(num_frames=NUM_FRAMES, return_to_start=True):
     P_b_list = []
     last_vis = None
     while len(P_t_list) < num_frames:
-        left = cv2.remap(capture_frame(2), mapLx, mapLy, cv2.INTER_CUBIC)
-        right = cv2.remap(capture_frame(0), mapRx, mapRy, cv2.INTER_CUBIC)
+        raw_left = capture_frame(2)
+        raw_right = capture_frame(0)
+
+        # Detect the AprilTag on the raw images before rectification
+        grayL = cv2.cvtColor(raw_left, cv2.COLOR_BGR2GRAY)
+        grayR = cv2.cvtColor(raw_right, cv2.COLOR_BGR2GRAY)
+        cornersL, idsL, _ = TAG_DETECTOR.detectMarkers(grayL)
+        cornersR, idsR, _ = TAG_DETECTOR.detectMarkers(grayR)
+
+        pb = None
+        if idsL is not None:
+            log("AprilTag detected in left image")
+            rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(
+                cornersL, TAG_SIZE_M, K_L, D_L
+            )
+            pb = tvecs[0].reshape(3)
+        elif idsR is not None:
+            log("AprilTag detected in right image")
+            rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(
+                cornersR, TAG_SIZE_M, K_R, D_R
+            )
+            pb = tvecs[0].reshape(3)
+        else:
+            log("No AprilTag detected.")
+            continue
+
+        # Rectify after successful tag detection
+        left = cv2.remap(raw_left, mapLx, mapLy, cv2.INTER_CUBIC)
+        right = cv2.remap(raw_right, mapRx, mapRy, cv2.INTER_CUBIC)
         gL = cv2.cvtColor(left, cv2.COLOR_BGR2GRAY)
         gR = cv2.cvtColor(right, cv2.COLOR_BGR2GRAY)
         d16 = stereo.compute(gL, gR)
@@ -240,7 +267,6 @@ def run_cycle(num_frames=NUM_FRAMES, return_to_start=True):
         results = MODEL(left, verbose=False)[0]
         log(f"YOLO detections: {len(results.boxes)}")
         pt = None
-        pb = None
         bbox_t = None
         if len(results.boxes):
             boxes = results.boxes.xyxy.cpu().numpy()
@@ -251,19 +277,8 @@ def run_cycle(num_frames=NUM_FRAMES, return_to_start=True):
             cv2.rectangle(vis, (x1, y1), (x2, y2), (0, 0, 255), 2)
             pt = _avg_bbox_point(pts3d, bbox_t)
 
-        gray = cv2.cvtColor(left, cv2.COLOR_BGR2GRAY)
-        corners, ids, _ = TAG_DETECTOR.detectMarkers(gray)
-        log(f"AprilTag detections: {0 if ids is None else len(ids)}")
-        bbox_b = None
-        if ids is not None:
-            rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(
-                corners, TAG_SIZE_M, K_L, D_L
-            )
-            bbox_b = cv2.boundingRect(corners[0].astype(int))
-            cv2.aruco.drawDetectedMarkers(vis, corners)
-            cv2.drawFrameAxes(vis, K_L, D_L, rvecs[0], tvecs[0], TAG_SIZE_M * 0.5)
-            pb = tvecs[0].reshape(3)
-
+        # pb already computed from the raw image detection earlier
+        
         last_vis = vis
         if _is_valid_pt(pt) and _is_valid_pt(pb):
             P_t_list.append(pt)
