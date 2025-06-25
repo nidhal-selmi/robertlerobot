@@ -166,7 +166,7 @@ def auto_center(cam_idx=GRIPPER_CAM_INDEX):
         image_center_y = frame.shape[0] // 2
         delta_x = last_pos[0] - image_center_x
         delta_y = last_pos[1] - image_center_y
-        seuil = 50
+        seuil = 10
 
         if prev_delta_x is not None and delta_x * prev_delta_x < 0 and not overshoot_x:
             step_x = max(1, CENTER_STEPS_X // 2)
