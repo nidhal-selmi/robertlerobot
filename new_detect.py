@@ -48,7 +48,7 @@ def send_command(cmd):
 STEPS_PER_MM_X = 115.38
 STEPS_PER_MM_YZ = 18.75
 # Number of millimetres to move per centering step
-CENTER_MM = 10
+CENTER_MM = 15
 CENTER_STEPS_X = int(CENTER_MM * STEPS_PER_MM_X)
 CENTER_STEPS_Y = int(CENTER_MM * STEPS_PER_MM_YZ)
 
@@ -61,7 +61,7 @@ TAG_DETECTOR = cv2.aruco.ArucoDetector(TAG_DICT, TAG_PARAMS)
 # Clearance from gripper to the strawberry (meters)
 # Positive values move the gripper away from the berry along
 # the gripper's X, Y and Z axes.
-CLEARANCE_GS_M = np.array([0.05, 0.00, 0.05])
+CLEARANCE_GS_M = np.array([0.03, 0.00, 0.05])
 
 # Offset from the AprilTag marker to the gripper origin (meters)
 # These values describe where the gripper sits relative to the
@@ -351,7 +351,7 @@ def run_cycle(num_frames=NUM_FRAMES, return_to_start=True):
     auto_center(cam_idx=4)
 
     # Advance 4 cm towards the berry
-    advance_steps = int(40 * STEPS_PER_MM_YZ)
+    advance_steps = int(50 * STEPS_PER_MM_YZ)
     send_command(f"MOVE_Z {advance_steps:+d}")
     time.sleep(2)
 
