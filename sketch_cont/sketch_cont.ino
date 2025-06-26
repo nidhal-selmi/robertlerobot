@@ -1,4 +1,5 @@
 #include <AccelStepper.h>
+#include <Servo.h>
 #include <math.h>
 
 //-------------------------
@@ -36,12 +37,18 @@ const int stepPinZ = 13;
 const int dirPinZ  = 12;
 const int enaPinZ  = 11; // active LOW
 
+// Servo
+const int servoPin = 4;
+const int openAngle = 35;
+const int closeAngle = 0;
+
 //-------------------------
 // Create AccelStepper Objects
 //-------------------------
 AccelStepper stepperX(AccelStepper::DRIVER, stepPinX, dirPinX);
 AccelStepper stepperY(AccelStepper::DRIVER, stepPinY, dirPinY);
 AccelStepper stepperZ(AccelStepper::DRIVER, stepPinZ, dirPinZ);
+Servo gripper;
 
 //-------------------------
 // Movement Flags and Timeouts
@@ -64,6 +71,9 @@ void setup() {
   pinMode(enaPinX, OUTPUT); digitalWrite(enaPinX, LOW);
   pinMode(enaPinY, OUTPUT); digitalWrite(enaPinY, LOW);
   pinMode(enaPinZ, OUTPUT); digitalWrite(enaPinZ, LOW);
+
+  gripper.attach(servoPin);
+  gripper.write(openAngle);
 
   // Configure speeds
   stepperX.setMaxSpeed(motorSpeedX);
@@ -107,6 +117,14 @@ void loop() {
         movingZ = true;
         startZ = millis();
       }
+    }
+    else if (cmd == "OPEN") {
+      gripper.write(openAngle);
+      Serial.println("Gripper opened.");
+    }
+    else if (cmd == "CLOSE") {
+      gripper.write(closeAngle);
+      Serial.println("Gripper closed.");
     }
     else if (cmd == "STOP") {
       stepperX.stop(); stepperY.stop(); stepperZ.stop();

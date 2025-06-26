@@ -354,6 +354,7 @@ def run_cycle(num_frames=NUM_FRAMES, return_to_start=True):
     advance_steps = int(40 * STEPS_PER_MM_YZ)
     send_command(f"MOVE_Z {advance_steps:+d}")
     time.sleep(2)
+    send_command("CLOSE")
 
     reverse_cmds = [
         f"MOVE_Z {-advance_steps:+d}",
@@ -421,6 +422,7 @@ if __name__ == '__main__':
         elif key == ord('h') and reverse_cmds:
             for cmd in reverse_cmds:
                 send_command(cmd)
+            send_command("OPEN")
             log("Returned to original position.")
             mode = 'idle'
         elif key == ord('p'):
