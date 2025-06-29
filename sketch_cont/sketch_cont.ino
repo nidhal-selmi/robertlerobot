@@ -55,6 +55,8 @@ Servo gripper;
 //-------------------------
 bool movingXY = false;
 bool movingZ  = false;
+bool contX = false;
+bool contY = false;
 unsigned long startXY = 0;
 unsigned long startZ  = 0;
 const unsigned long timeoutXY = 500000;
@@ -126,8 +128,31 @@ void loop() {
       gripper.write(closeAngle);
       Serial.println("Gripper closed.");
     }
+    else if (cmd.startsWith("DRIVE ")) {
+      int i1 = cmd.indexOf(' ');
+      int i2 = cmd.indexOf(' ', i1 + 1);
+      if (i1 > 0 && i2 > 0) {
+        int dx = cmd.substring(i1 + 1, i2).toInt();
+        int dy = cmd.substring(i2 + 1).toInt();
+        if (dx != 0) {
+          stepperX.setSpeed(dx > 0 ? motorSpeedX : -motorSpeedX);
+          contX = true;
+        } else {
+          stepperX.stop();
+          contX = false;
+        }
+        if (dy != 0) {
+          stepperY.setSpeed(dy > 0 ? motorSpeedY : -motorSpeedY);
+          contY = true;
+        } else {
+          stepperY.stop();
+          contY = false;
+        }
+      }
+    }
     else if (cmd == "STOP") {
       stepperX.stop(); stepperY.stop(); stepperZ.stop();
+      contX = false; contY = false;
       Serial.println("Stopped.");
     }
   }
@@ -145,6 +170,14 @@ void loop() {
       Serial.println("XY timeout.");
       movingXY = false;
     }
+  }
+
+  // Continuous drive when requested
+  if (contX) {
+    stepperX.runSpeed();
+  }
+  if (contY) {
+    stepperY.runSpeed();
   }
 
   // Run Z

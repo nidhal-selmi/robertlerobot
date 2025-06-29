@@ -19,6 +19,10 @@ During auto centering you can press
 **p** to pause or **h** to immediately return the robot to its start position.
 If a correction overshoots the centre, the next move uses half the initial step
 to gently settle on the target.
+The Arduino firmware now understands a `DRIVE <dx> <dy>` command which moves
+the X and Y axes continuously in the specified directions until a `STOP`
+command is received. `new_detect.py` uses this to keep driving the motors until
+the berry is centred within the 10&nbsp;pixel threshold.
 
 The repository also includes ``detect_apriltag_left.py`` and
 ``calibrate_tilt_apriltag.py`` for working with AprilTags. These helpers are
